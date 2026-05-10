@@ -42,8 +42,8 @@ const studentSchema = new mongoose.Schema({
   timestamps: true,  // Adds createdAt and updatedAt
 });
 
-// Index for faster lookups
-studentSchema.index({ fingerprintId: 1 });
+// `unique: true` on fingerprintId already creates an index,
+// so we avoid defining the same index twice.
 studentSchema.index({ class: 1, roll: 1 });
 
 module.exports = mongoose.model('Student', studentSchema);

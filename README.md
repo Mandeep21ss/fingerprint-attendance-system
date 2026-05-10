@@ -135,12 +135,15 @@ npm install
 Edit `backend/.env`:
 ```env
 PORT=5000
-MONGO_URI=mongodb://localhost:27017/fingerprint_attendance
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.example.mongodb.net/fingerprint_attendance?retryWrites=true&w=majority
 JWT_SECRET=change_this_to_a_random_string
 ADMIN_EMAIL=admin@attendance.com
 ADMIN_PASSWORD=Admin@123
 CLIENT_URL=http://localhost:5173
 ```
+
+- If your MongoDB Atlas password contains special characters like `@`, replace them with URL-encoded values (for example, `@` becomes `%40`).
+- Do not commit `backend/.env` to GitHub. Use `backend/.env.example` as the template.
 
 ### 3. Seed Admin Account
 ```bash
@@ -260,25 +263,44 @@ Then:
 
 ---
 
-## 🏗️ Production Deployment
+## 🚀 Production Deployment
 
-### Backend
-```bash
-cd backend
-npm install --production
-NODE_ENV=production node server.js
+### 1. Database — MongoDB Atlas
+1. Sign up at [cloud.mongodb.com](https://cloud.mongodb.com)
+2. Create a cluster and database user
+3. Whitelist your host IP in "Network Access"
+4. Copy the connection string and update `MONGO_URI` in `backend/.env`
+   - Replace `<password>` with your database user password (URL-encode special chars like `@` → `%40`)
+
+### 2. Backend — Render.com
+1. Create account at [render.com](https://render.com)
+2. Connect your GitHub repository
+3. Create a new **Web Service**:
+   - **Source**: Select your GitHub repo
+   - **Root Directory**: `backend`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+4. Add environment variables:
+   - `MONGO_URI` → your Atlas connection string
+   - `JWT_SECRET` → a strong random secret
+   - `NODE_ENV` → `production`
+   - `CLIENT_URL` → your Vercel frontend URL (add later after deploying frontend)
+5. Deploy and copy the generated backend URL
+
+### 3. Frontend — Vercel
+1. Create account at [vercel.com](https://vercel.com)
+2. Import your GitHub repository
+3. Vercel will auto-detect `vercel.json` in the root
+4. Set environment variable:
+   - `VITE_API_URL` → your Render backend URL (e.g., `https://attendance-api.example.com`)
+5. Deploy
+6. Go back to Render and update `CLIENT_URL` with your Vercel frontend URL
+
+### 4. Update ESP32 Firmware
+In your Arduino sketch, replace the local API endpoint with your Render backend:
+```cpp
+const char* SERVER_URL = "https://your-render-backend.example.com/api/attendance";
 ```
-
-### Frontend
-```bash
-cd frontend
-npm run build
-# Serve the `dist/` folder with nginx or any static server
-```
-
-### MongoDB Atlas (Cloud)
-1. Create free cluster at [cloud.mongodb.com](https://cloud.mongodb.com)
-2. Get connection string and update `MONGO_URI` in `.env`
 
 ---
 
