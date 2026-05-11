@@ -1,57 +1,56 @@
 /**
- * ══════════════════════════════════════════════════════════
- *  Fingerprint Attendance System — Express Server
- * ══════════════════════════════════════════════════════════
- *  Features:
- *    • REST API for ESP32, students, attendance
- *    • Socket.io for real-time attendance updates
- *    • JWT authentication for admin routes
- *    • MongoDB via Mongoose
- *    • CORS support
- * ══════════════════════════════════════════════════════════
+ * Fingerprint Attendance API — Express + Socket.io + MongoDB
  */
 
 require('dotenv').config();
 
-const express  = require('express');
-const http     = require('http');
-const cors     = require('cors');
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
+const { getAllowedOrigins, corsOriginCallback } = require('./utils/corsOrigins');
 
-// ─── Initialize Express ───
-const app    = express();
+function requireEnv(name) {
+  const v = process.env[name];
+  if (!v || !String(v).trim()) {
+    console.error(`Missing required environment variable: ${name}`);
+    process.exit(1);
+  }
+  return String(v).trim();
+}
+
+// Fail fast in production (and early in dev) so Render does not boot a broken API
+requireEnv('MONGO_URI');
+requireEnv('JWT_SECRET');
+
+const app = express();
 const server = http.createServer(app);
 
-// ─── Socket.io Setup ───
+const socketCorsOrigins = getAllowedOrigins();
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: socketCorsOrigins.length === 1 ? socketCorsOrigins[0] : socketCorsOrigins,
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
 
-// Make io accessible in routes via req.app.get('io')
 app.set('io', io);
 
-// Socket.io connection handler
 io.on('connection', (socket) => {
-  console.log(`🔌 Client connected: ${socket.id}`);
-
-  socket.on('disconnect', () => {
-    console.log(`🔌 Client disconnected: ${socket.id}`);
-  });
+  console.log(`Socket connected: ${socket.id}`);
+  socket.on('disconnect', () => console.log(`Socket disconnected: ${socket.id}`));
 });
 
-// ─── Middleware ───
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: corsOriginCallback,
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Request logger (dev only)
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
     console.log(`${req.method} ${req.url}`);
@@ -59,13 +58,11 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// ─── API Routes ───
-app.use('/api/auth',       require('./routes/auth'));
-app.use('/api/students',   require('./routes/students'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/students', require('./routes/students'));
 app.use('/api/attendance', require('./routes/attendance'));
-app.use('/api/device',     require('./routes/device'));
+app.use('/api/device', require('./routes/device'));
 
-// ─── Health Check ───
 app.get('/api/health', (req, res) => {
   res.json({
     success: true,
@@ -75,7 +72,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ─── 404 Handler ───
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -83,7 +79,6 @@ app.use((req, res) => {
   });
 });
 
-// ─── Global Error Handler ───
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({
@@ -93,27 +88,17 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ─── Start Server ───
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  // Connect to MongoDB
   await connectDB();
-
   server.listen(PORT, () => {
-    console.log();
-    console.log('╔══════════════════════════════════════════╗');
-    console.log('║  Fingerprint Attendance System Backend   ║');
-    console.log('╠══════════════════════════════════════════╣');
-    console.log(`║  🚀 Server  : http://localhost:${PORT}       ║`);
-    console.log(`║  📡 Socket  : ws://localhost:${PORT}         ║`);
-    console.log(`║  🌐 Mode    : ${(process.env.NODE_ENV || 'development').padEnd(22)}║`);
-    console.log('╚══════════════════════════════════════════╝');
-    console.log();
+    const mode = process.env.NODE_ENV || 'development';
+    console.log(`Fingerprint Attendance API listening on port ${PORT} (${mode})`);
   });
 };
 
 startServer().catch((err) => {
-  console.error('❌ Failed to start server:', err);
+  console.error('Failed to start server:', err);
   process.exit(1);
 });

@@ -19,17 +19,66 @@
  */
 
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Adafruit_Fingerprint.h>
+#include <time.h>
+#include <string.h>
 
 // ──────────────────── CONFIGURATION ────────────────────
-// WiFi credentials — update these with your network info
-const char* WIFI_SSID     = "BrightKids_2.4G";
-const char* WIFI_PASSWORD = "Gurukul_Edutech";
+// WiFi — set your network credentials (do not commit real secrets to a public repo)
+const char* WIFI_SSID     = "YOUR_WIFI_SSID";
+const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
 
-// Backend server base URL — update with your server's IP address
-const char* SERVER_BASE = "http://192.168.1.222:5000";
+// Backend base URL — no trailing slash.
+// LAN (same WiFi as ESP32): "http://192.168.1.50:5000"
+// Hosted API (HTTPS):      "https://your-service.onrender.com"
+// const char* SERVER_BASE = "https://fingerprint-attendance-system-6b1s.onrender.com";
+const char* SERVER_BASE = "http://192.168.1.100:5000";
+
+// Name sent in JSON field "device" on each attendance POST (shown in dashboard / logs)
+const char* DEVICE_ATTENDANCE_LABEL = "ESP32-01";
+
+// If HTTPS fails with certificate errors after NTP, set to 1 (disables TLS verification — use only if needed)
+#ifndef ESP32_HTTPS_INSECURE
+#define ESP32_HTTPS_INSECURE 0
+#endif
+
+WiFiClientSecure gWifiClientSecure;
+
+static bool serverUsesHttps() {
+  return strncmp(SERVER_BASE, "https://", 8) == 0;
+}
+
+// TLS needs valid time for certificate verification
+void syncClockFromNtp() {
+  if (!serverUsesHttps()) return;
+
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+  Serial.print("⏳ NTP time sync");
+  for (int i = 0; i < 40; i++) {
+    struct tm ti;
+    if (getLocalTime(&ti)) {
+      Serial.println(" — OK");
+      return;
+    }
+    Serial.print(".");
+    delay(250);
+  }
+  Serial.println(" — timeout (HTTPS may fail until time is valid)");
+}
+
+void beginHttpForUrl(HTTPClient& http, const String& fullUrl) {
+  if (fullUrl.startsWith("https://")) {
+#if ESP32_HTTPS_INSECURE
+    gWifiClientSecure.setInsecure();
+#endif
+    http.begin(gWifiClientSecure, fullUrl);
+  } else {
+    http.begin(fullUrl);
+  }
+}
 
 // ──────────────────── PIN DEFINITIONS ────────────────────
 #define FINGERPRINT_RX 16   // ESP32 RX2 ← R305 TX (green wire)
@@ -51,6 +100,8 @@ String currentMode    = "attend";   // "attend" or "enroll"
 int    enrollId       = -1;         // Fingerprint ID to enroll
 String enrollName     = "";         // Student name (from web)
 bool   modeFromWeb    = false;      // True if mode was set from web
+
+unsigned long lastWifiReconnectAttempt = 0;
 
 // ──────────────────── SETUP ────────────────────
 void setup() {
@@ -105,6 +156,8 @@ void setup() {
 
 // ──────────────────── MAIN LOOP ────────────────────
 void loop() {
+  maintainWifi();
+
   // Check for serial commands (local override)
   handleSerialCommands();
 
@@ -146,7 +199,7 @@ void pollServerForMode() {
 
   HTTPClient http;
   String url = String(SERVER_BASE) + "/api/device/mode";
-  http.begin(url);
+  beginHttpForUrl(http, url);
   http.setTimeout(3000);
 
   int httpCode = http.GET();
@@ -260,7 +313,7 @@ void sendAckToServer(String status, String message) {
 
   HTTPClient http;
   String url = String(SERVER_BASE) + "/api/device/ack";
-  http.begin(url);
+  beginHttpForUrl(http, url);
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(3000);
 
@@ -282,7 +335,7 @@ void sendCommandResult(String status, String message, int data) {
 
   HTTPClient http;
   String url = String(SERVER_BASE) + "/api/device/ack";
-  http.begin(url);
+  beginHttpForUrl(http, url);
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(3000);
 
@@ -314,10 +367,12 @@ void connectWiFi() {
   Serial.print("📡 Connecting to WiFi: ");
   Serial.println(WIFI_SSID);
 
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+  while (WiFi.status() != WL_CONNECTED && attempts < 40) {
     delay(500);
     Serial.print(".");
     attempts++;
@@ -327,10 +382,24 @@ void connectWiFi() {
     Serial.println();
     Serial.print("✅ WiFi connected! IP: ");
     Serial.println(WiFi.localIP());
+    if (serverUsesHttps()) {
+      syncClockFromNtp();
+    }
   } else {
     Serial.println();
     Serial.println("❌ WiFi connection failed! Running in offline mode.");
   }
+}
+
+// Retry WiFi periodically when dropped (router restarts, weak signal)
+void maintainWifi() {
+  if (WiFi.status() == WL_CONNECTED) return;
+  if (millis() - lastWifiReconnectAttempt < 20000) return;
+  lastWifiReconnectAttempt = millis();
+  Serial.println("📡 WiFi disconnected — reconnecting...");
+  WiFi.disconnect(false);
+  delay(200);
+  connectWiFi();
 }
 
 // ──────────────────── FINGERPRINT SCANNING ────────────────────
@@ -369,7 +438,7 @@ void sendAttendance(int fingerprintId) {
 
   HTTPClient http;
   String url = String(SERVER_BASE) + "/api/attendance";
-  http.begin(url);
+  beginHttpForUrl(http, url);
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(5000);
 
@@ -377,7 +446,7 @@ void sendAttendance(int fingerprintId) {
   StaticJsonDocument<256> doc;
   doc["fingerprintId"] = fingerprintId;
   doc["status"]        = "present";
-  doc["device"]        = "ESP32-01";
+  doc["device"]        = DEVICE_ATTENDANCE_LABEL;
 
   String payload;
   serializeJson(doc, payload);
@@ -593,6 +662,9 @@ void handleSerialCommands() {
     }
     else if (cmd == "STATUS") {
       Serial.println("──────────────────────────────────");
+      Serial.print("   API base   : "); Serial.println(SERVER_BASE);
+      Serial.print("   HTTPS      : "); Serial.println(serverUsesHttps() ? "Yes" : "No");
+      Serial.print("   Device tag : "); Serial.println(DEVICE_ATTENDANCE_LABEL);
       Serial.print("   Mode       : "); Serial.println(currentMode);
       Serial.print("   Enroll ID  : "); Serial.println(enrollId);
       Serial.print("   WiFi       : "); Serial.println(WiFi.status() == WL_CONNECTED ? "Connected" : "Disconnected");

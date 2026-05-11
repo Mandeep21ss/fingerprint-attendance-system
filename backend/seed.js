@@ -9,6 +9,10 @@ const Admin = require('./models/Admin');
 
 const seed = async () => {
   try {
+    if (!process.env.MONGO_URI || !String(process.env.MONGO_URI).trim()) {
+      console.error('MONGO_URI is required. Copy .env.example to .env and set MONGO_URI.');
+      process.exit(1);
+    }
     await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to MongoDB');
 
@@ -25,7 +29,7 @@ const seed = async () => {
     });
 
     await admin.save();
-    console.log('✅ Default admin created:');
+    console.log('Default admin created:');
     console.log(`   Email: ${admin.email}`);
     console.log(`   Password: (as set in .env or Admin@123)`);
 

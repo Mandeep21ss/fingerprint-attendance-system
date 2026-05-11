@@ -10,6 +10,7 @@
  */
 
 const express = require('express');
+const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 
 // ─── In-memory device state ───
@@ -28,7 +29,7 @@ let deviceState = {
 };
 
 // ─── POST /api/device/mode ─── Set Mode (from frontend) ───
-router.post('/mode', (req, res) => {
+router.post('/mode', authMiddleware, (req, res) => {
   const { mode, enrollId, enrollName } = req.body;
 
   if (!mode || !['attend', 'enroll'].includes(mode)) {
@@ -62,7 +63,7 @@ router.post('/mode', (req, res) => {
     });
   }
 
-  console.log(`🔧 Device mode set to: ${mode}${mode === 'enroll' ? ` (ID #${enrollId})` : ''}`);
+  console.log(`Device mode: ${mode}${mode === 'enroll' ? ` (ID #${enrollId})` : ''}`);
 
   res.json({
     success: true,
@@ -72,7 +73,7 @@ router.post('/mode', (req, res) => {
 });
 
 // ─── POST /api/device/command ─── Queue a command for ESP32 ───
-router.post('/command', (req, res) => {
+router.post('/command', authMiddleware, (req, res) => {
   const { type, id } = req.body;
 
   const validCommands = ['delete', 'count', 'empty'];
@@ -118,7 +119,7 @@ router.post('/command', (req, res) => {
     io.emit('deviceCommandQueued', { type, id });
   }
 
-  console.log(`🔧 Command queued: ${type}${id ? ` (ID #${id})` : ''}`);
+  console.log(`Device command queued: ${type}${id ? ` (ID #${id})` : ''}`);
 
   res.json({
     success: true,
@@ -207,13 +208,13 @@ router.post('/ack', (req, res) => {
     });
   }
 
-  console.log(`📡 ESP32 ACK: ${status} — ${message || ''}`);
+  console.log(`ESP32 ACK: ${status} — ${message || ''}`);
 
   res.json({ success: true });
 });
 
 // ─── GET /api/device/status ─── Full device status ───
-router.get('/status', (req, res) => {
+router.get('/status', authMiddleware, (req, res) => {
   // Check if ESP32 has polled in last 10 seconds
   if (deviceState.lastPollTime) {
     const lastPoll = new Date(deviceState.lastPollTime).getTime();

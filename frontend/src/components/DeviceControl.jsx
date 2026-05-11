@@ -10,6 +10,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import api from '../utils/api';
+import { getSocketUrl } from '../utils/apiBase';
 import {
   Fingerprint, Radio, Wifi, WifiOff, Loader, CheckCircle, XCircle,
   Trash2, Hash, Database, AlertTriangle, Terminal, ChevronDown, ChevronUp,
@@ -55,8 +56,7 @@ export default function DeviceControl({ students = [] }) {
 
   // Listen for socket events
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL || window.location.origin;
-    const socket = io(socketUrl);
+    const socket = io(getSocketUrl());
 
     socket.on('deviceModeChanged', (data) => {
       setDeviceStatus((prev) => ({ ...prev, ...data }));

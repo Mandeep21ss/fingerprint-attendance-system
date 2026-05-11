@@ -137,9 +137,15 @@ dist
 !.yarn/sdks
 !.yarn/versions
 
-# Vite files
+# Vite / frontend build output
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 .vercel
 .env*.local
+frontend/dist/
+
+# OS / accidental artifacts
+.DS_Store
+Thumbs.db
+$null

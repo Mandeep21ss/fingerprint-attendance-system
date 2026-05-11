@@ -8,37 +8,15 @@ A production-ready biometric attendance system using **ESP32 microcontroller** w
 
 ```
 fingerprint-attendance-system/
-├── esp32/
-│   └── fingerprint_attendance.ino    # ESP32 Arduino firmware
+├── esp32/fingerprint_attendance/
+│   └── fingerprint_attendance.ino    # ESP32 + R305 firmware
 ├── backend/
-│   ├── server.js                     # Express server entry point
-│   ├── seed.js                       # Admin seed script
-│   ├── .env                          # Environment variables
-│   ├── config/db.js                  # MongoDB connection
-│   ├── models/
-│   │   ├── Student.js                # Student schema
-│   │   ├── Attendance.js             # Attendance schema
-│   │   └── Admin.js                  # Admin schema (bcrypt)
-│   ├── routes/
-│   │   ├── auth.js                   # Login/auth routes
-│   │   ├── students.js               # Student CRUD
-│   │   └── attendance.js             # Attendance + stats
-│   └── middleware/auth.js            # JWT middleware
+│   ├── server.js, seed.js, config/db.js, middleware/auth.js
+│   ├── models/ (Admin, Student, Attendance)
+│   └── routes/ (auth, students, attendance, device)
 ├── frontend/
-│   ├── index.html
-│   ├── vite.config.js
-│   └── src/
-│       ├── main.jsx
-│       ├── App.jsx                   # Root + routing
-│       ├── index.css                 # Global styles
-│       ├── context/AuthContext.jsx    # Auth state
-│       ├── utils/api.js              # Axios instance
-│       ├── components/Navbar.jsx     # Sidebar nav
-│       └── pages/
-│           ├── Login.jsx
-│           ├── Dashboard.jsx
-│           ├── Students.jsx
-│           └── Attendance.jsx
+│   ├── index.html, vite.config.js, vercel.json
+│   └── src/ (React: pages, components, context, utils)
 └── README.md
 ```
 

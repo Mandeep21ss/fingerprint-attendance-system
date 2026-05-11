@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import api from '../utils/api';
+import { getSocketUrl } from '../utils/apiBase';
 import {
   Fingerprint, Wifi, WifiOff, Loader, CheckCircle, XCircle,
   Trash2, Hash, Database, AlertTriangle, UserPlus, Hand, RotateCcw,
@@ -57,8 +58,7 @@ export default function Registration() {
 
   // Socket.io — listen for enrollment progress + device events
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL || window.location.origin;
-    const socket = io(socketUrl);
+    const socket = io(getSocketUrl());
 
     socket.on('deviceStatus', (data) => {
       setDeviceStatus((prev) => ({ ...prev, ...data }));

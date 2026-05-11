@@ -2,11 +2,12 @@
  * API utility — Axios instance with auth interceptor
  */
 import axios from 'axios';
+import { getApiBaseUrl } from './apiBase';
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const API_BASE = getApiBaseUrl();
 
 const api = axios.create({
-  baseURL: `${API_BASE}/api`,
+  baseURL: API_BASE ? `${API_BASE}/api` : '/api',
   headers: { 'Content-Type': 'application/json' },
   timeout: 10000,
 });

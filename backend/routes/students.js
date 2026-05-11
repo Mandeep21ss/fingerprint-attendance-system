@@ -14,15 +14,23 @@ const authMiddleware = require('../middleware/auth');
 const router = express.Router();
 
 // ─── POST /api/students ─── Add New Student ───
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { name, fingerprintId, class: studentClass, roll, email } = req.body;
+    const { name, fingerprintId: rawFpId, class: studentClass, roll, email } = req.body;
+    const fingerprintId = parseInt(String(rawFpId), 10);
 
     // Validation
-    if (!name || !fingerprintId || !studentClass || !roll) {
+    if (!name || Number.isNaN(fingerprintId) || !studentClass || !roll) {
       return res.status(400).json({
         success: false,
-        message: 'Name, fingerprintId, class, and roll are required.',
+        message: 'Name, fingerprintId (1–127), class, and roll are required.',
+      });
+    }
+
+    if (fingerprintId < 1 || fingerprintId > 127) {
+      return res.status(400).json({
+        success: false,
+        message: 'fingerprintId must be between 1 and 127.',
       });
     }
 
@@ -76,7 +84,7 @@ router.post('/', async (req, res) => {
 });
 
 // ─── GET /api/students ─── Get All Students ───
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const { search, class: filterClass, active } = req.query;
 
@@ -117,7 +125,7 @@ router.get('/', async (req, res) => {
 });
 
 // ─── GET /api/students/:id ─── Get Single Student ───
-router.get('/:id', async (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
 
@@ -144,10 +152,20 @@ router.get('/:id', async (req, res) => {
 // ─── PUT /api/students/:id ─── Update Student ───
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { name, fingerprintId, class: studentClass, roll, email, isActive } = req.body;
+    const { name, fingerprintId: rawFp, class: studentClass, roll, email, isActive } = req.body;
+    const fingerprintId =
+      rawFp === undefined || rawFp === null || rawFp === ''
+        ? undefined
+        : parseInt(String(rawFp), 10);
 
     // Check fingerprint ID uniqueness if being changed
-    if (fingerprintId) {
+    if (fingerprintId !== undefined) {
+      if (Number.isNaN(fingerprintId) || fingerprintId < 1 || fingerprintId > 127) {
+        return res.status(400).json({
+          success: false,
+          message: 'fingerprintId must be between 1 and 127.',
+        });
+      }
       const existing = await Student.findOne({
         fingerprintId,
         _id: { $ne: req.params.id },
@@ -160,9 +178,14 @@ router.put('/:id', authMiddleware, async (req, res) => {
       }
     }
 
+    const updates = { name, class: studentClass, roll, email, isActive };
+    if (fingerprintId !== undefined) {
+      updates.fingerprintId = fingerprintId;
+    }
+
     const student = await Student.findByIdAndUpdate(
       req.params.id,
-      { name, fingerprintId, class: studentClass, roll, email, isActive },
+      updates,
       { new: true, runValidators: true }
     );
 

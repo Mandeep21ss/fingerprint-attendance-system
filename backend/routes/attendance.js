@@ -9,18 +9,20 @@
 const express = require('express');
 const Attendance = require('../models/Attendance');
 const Student = require('../models/Student');
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
 // ─── POST /api/attendance ─── Record Attendance (ESP32 endpoint) ───
 router.post('/', async (req, res) => {
   try {
-    const { fingerprintId, status = 'present', device = 'ESP32-01' } = req.body;
+    const { fingerprintId: rawFp, status = 'present', device = 'ESP32-01' } = req.body;
+    const fingerprintId = parseInt(String(rawFp), 10);
 
-    if (!fingerprintId) {
+    if (Number.isNaN(fingerprintId) || fingerprintId < 1) {
       return res.status(400).json({
         success: false,
-        message: 'Fingerprint ID is required.',
+        message: 'Valid fingerprint ID is required.',
       });
     }
 
@@ -77,7 +79,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    console.log(`✅ Attendance: ${student.name} (ID: ${fingerprintId}) at ${time}`);
+    console.log(`Attendance: ${student.name} (ID: ${fingerprintId}) at ${time}`);
 
     res.status(201).json({
       success: true,
@@ -96,7 +98,7 @@ router.post('/', async (req, res) => {
 });
 
 // ─── GET /api/attendance ─── Get Attendance Records ───
-router.get('/', async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const {
       date,
@@ -166,7 +168,7 @@ router.get('/', async (req, res) => {
 });
 
 // ─── GET /api/attendance/today ─── Today's Attendance ───
-router.get('/today', async (req, res) => {
+router.get('/today', authMiddleware, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
@@ -194,7 +196,7 @@ router.get('/today', async (req, res) => {
 });
 
 // ─── GET /api/attendance/stats ─── Dashboard Statistics ───
-router.get('/stats', async (req, res) => {
+router.get('/stats', authMiddleware, async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 

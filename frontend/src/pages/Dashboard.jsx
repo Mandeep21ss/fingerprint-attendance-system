@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import api from '../utils/api';
+import { getSocketUrl } from '../utils/apiBase';
 import {
   Users, UserCheck, UserX, TrendingUp, Clock, Fingerprint, Wifi, WifiOff,
 } from 'lucide-react';
@@ -20,8 +21,7 @@ export default function Dashboard() {
 
   // Socket.io for real-time updates
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL || window.location.origin;
-    const socket = io(socketUrl);
+    const socket = io(getSocketUrl());
 
     socket.on('attendanceMarked', (data) => {
       toast.success(`${data.name} marked present!`, { icon: '✅' });

@@ -4,6 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import api from '../utils/api';
+import { getSocketUrl } from '../utils/apiBase';
 import {
   Search, Download, Calendar, Filter, ChevronLeft, ChevronRight,
   ClipboardList, RefreshCw, Wifi, WifiOff, Fingerprint, Loader,
@@ -31,8 +32,7 @@ export default function Attendance() {
 
   // Socket.io — auto-refresh on new attendance + device status
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_API_URL || window.location.origin;
-    const socket = io(socketUrl);
+    const socket = io(getSocketUrl());
 
     socket.on('attendanceMarked', () => {
       if (!dateFilter && !startDate) { fetchAttendance(); }

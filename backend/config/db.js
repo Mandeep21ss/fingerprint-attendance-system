@@ -13,19 +13,18 @@ const connectDB = async () => {
       socketTimeoutMS: 45000,
     });
 
-    console.log(`✅ MongoDB connected: ${conn.connection.host}`);
+    console.log(`MongoDB connected: ${conn.connection.host}`);
 
-    // Handle connection events
     mongoose.connection.on('error', (err) => {
-      console.error(`❌ MongoDB error: ${err.message}`);
+      console.error(`MongoDB error: ${err.message}`);
     });
 
     mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️  MongoDB disconnected. Attempting reconnect...');
+      console.warn('MongoDB disconnected.');
     });
 
   } catch (error) {
-    console.error(`❌ MongoDB connection failed: ${error.message}`);
+    console.error(`MongoDB connection failed: ${error.message}`);
     process.exit(1);
   }
 };

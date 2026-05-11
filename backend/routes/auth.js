@@ -1,7 +1,7 @@
 /**
  * Authentication Routes
  * POST /api/auth/login  — Admin login
- * POST /api/auth/seed   — Create default admin (dev only)
+ * POST /api/auth/seed   — Create default admin (production: needs SEED_SECRET + x-seed-secret header)
  * GET  /api/auth/me     — Get current admin info
  */
 
@@ -43,10 +43,19 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || !String(jwtSecret).trim()) {
+      console.error('JWT_SECRET is not configured.');
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error.',
+      });
+    }
+
     // Generate JWT token (expires in 24 hours)
     const token = jwt.sign(
       { id: admin._id, email: admin.email },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: '24h' }
     );
 
@@ -73,7 +82,26 @@ router.post('/login', async (req, res) => {
 // ─── POST /api/auth/seed ─── Create Default Admin ───
 router.post('/seed', async (req, res) => {
   try {
-    const existingAdmin = await Admin.findOne({ email: 'admin@attendance.com' });
+    if (process.env.NODE_ENV === 'production') {
+      const expected = process.env.SEED_SECRET && String(process.env.SEED_SECRET).trim();
+      if (!expected) {
+        return res.status(503).json({
+          success: false,
+          message:
+            'Set SEED_SECRET on the server, then call POST /api/auth/seed with header x-seed-secret matching that value.',
+        });
+      }
+      const provided = req.headers['x-seed-secret'];
+      if (provided !== expected) {
+        return res.status(403).json({
+          success: false,
+          message: 'Invalid or missing x-seed-secret header.',
+        });
+      }
+    }
+
+    const seedEmail = (process.env.ADMIN_EMAIL || 'admin@attendance.com').toLowerCase();
+    const existingAdmin = await Admin.findOne({ email: seedEmail });
     if (existingAdmin) {
       return res.json({
         success: true,
@@ -82,7 +110,7 @@ router.post('/seed', async (req, res) => {
     }
 
     const admin = new Admin({
-      email: process.env.ADMIN_EMAIL || 'admin@attendance.com',
+      email: seedEmail,
       password: process.env.ADMIN_PASSWORD || 'Admin@123',
       name: 'System Administrator',
     });
@@ -94,7 +122,7 @@ router.post('/seed', async (req, res) => {
       message: 'Default admin created successfully.',
       credentials: {
         email: admin.email,
-        password: '(as set in .env)',
+        passwordHint: 'Use ADMIN_PASSWORD from server environment (see .env.example).',
       },
     });
 
