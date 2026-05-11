@@ -1,0 +1,20 @@
+{
+  "name": "fingerprint-attendance-system",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Monorepo: backend (Express) + frontend (Vite/React).",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev:backend": "npm run dev -w fingerprint-attendance-backend",
+    "dev:frontend": "npm run dev -w fingerprint-attendance-frontend",
+    "build": "npm run build -w fingerprint-attendance-frontend",
+    "start": "npm run start -w fingerprint-attendance-backend",
+    "seed": "npm run seed -w fingerprint-attendance-backend"
+  }
+}
