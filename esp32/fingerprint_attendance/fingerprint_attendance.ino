@@ -28,21 +28,21 @@
 
 // ──────────────────── CONFIGURATION ────────────────────
 // WiFi — set your network credentials (do not commit real secrets to a public repo)
-const char* WIFI_SSID     = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID     = "BrightKids_2.4G";
+const char* WIFI_PASSWORD = "Gurukul_Edutech";
 
 // Backend base URL — no trailing slash.
 // LAN (same WiFi as ESP32): "http://192.168.1.50:5000"
 // Hosted API (HTTPS):      "https://your-service.onrender.com"
 // const char* SERVER_BASE = "https://fingerprint-attendance-system-6b1s.onrender.com";
-const char* SERVER_BASE = "http://192.168.1.100:5000";
+const char* SERVER_BASE = "https://fingerprint-attendance-system-6b1s.onrender.com";
 
 // Name sent in JSON field "device" on each attendance POST (shown in dashboard / logs)
 const char* DEVICE_ATTENDANCE_LABEL = "ESP32-01";
 
 // If HTTPS fails with certificate errors after NTP, set to 1 (disables TLS verification — use only if needed)
 #ifndef ESP32_HTTPS_INSECURE
-#define ESP32_HTTPS_INSECURE 0
+#define ESP32_HTTPS_INSECURE 1
 #endif
 
 WiFiClientSecure gWifiClientSecure;
@@ -195,17 +195,40 @@ void loop() {
 
 // ──────────────────── POLL SERVER FOR MODE + COMMANDS ────────────────────
 void pollServerForMode() {
-  if (WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("❌ WiFi disconnected - cannot poll");
+    return;
+  }
 
   HTTPClient http;
   String url = String(SERVER_BASE) + "/api/device/mode";
   beginHttpForUrl(http, url);
   http.setTimeout(3000);
 
+  Serial.print("📡 Polling: ");
+  Serial.println(url);
+
   int httpCode = http.GET();
+  
+  Serial.print("📊 HTTP Code: ");
+  Serial.println(httpCode);
+
+  // Detailed error diagnostics
+  if (httpCode == -1) {
+    Serial.println("⚠️  Connection Timeout (-1)");
+    Serial.println("   Likely causes:");
+    Serial.println("   • Firewall blocking HTTPS (port 443)");
+    Serial.println("   • Backend unreachable from your network");
+    Serial.println("   • SSL/certificate issue");
+    Serial.println("");
+    Serial.println("   SOLUTION: Try using HTTP instead of HTTPS");
+    Serial.println("   Change SERVER_BASE to:");
+    Serial.println("   http://fingerprint-attendance-system-6b1s.onrender.com");
+  }
 
   if (httpCode == 200) {
     String response = http.getString();
+    Serial.println("✅ Poll successful");
     
     StaticJsonDocument<512> doc;  // Larger buffer for command data
     DeserializationError err = deserializeJson(doc, response);
@@ -301,7 +324,15 @@ void pollServerForMode() {
           Serial.println(cmdType);
         }
       }
+    } else {
+      Serial.print("❌ JSON Parse Error: ");
+      Serial.println(err.f_str());
     }
+  } else if (httpCode == -1) {
+    Serial.println("❌ Poll Error: Connection timeout or failed");
+  } else {
+    Serial.print("❌ Poll Error: HTTP ");
+    Serial.println(httpCode);
   }
 
   http.end();

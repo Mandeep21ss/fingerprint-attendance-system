@@ -58,6 +58,34 @@ export default function DeviceControl({ students = [] }) {
   useEffect(() => {
     const socket = io(getSocketUrl());
 
+    // Debug connection issues
+    socket.on('connect', () => {
+      console.log('✅ Socket.io connected');
+      addLog({
+        type: 'info',
+        icon: '🔌',
+        message: 'Real-time connection established',
+      });
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('❌ Socket.io connection error:', error);
+      addLog({
+        type: 'error',
+        icon: '⚠️',
+        message: `Connection error: ${error.message || 'Unknown'}. Using polling fallback.`,
+      });
+    });
+
+    socket.on('disconnect', (reason) => {
+      console.warn('⚠️ Socket.io disconnected:', reason);
+      addLog({
+        type: 'info',
+        icon: '🔌',
+        message: `Disconnected (${reason}). Using polling fallback.`,
+      });
+    });
+
     socket.on('deviceModeChanged', (data) => {
       setDeviceStatus((prev) => ({ ...prev, ...data }));
     });
