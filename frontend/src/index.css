@@ -1,4 +1,11 @@
 /* ══════════════════════════════════════════════════════════
+   Tailwind CSS Directives
+   ══════════════════════════════════════════════════════════ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══════════════════════════════════════════════════════════
    Fingerprint Attendance System — Global Styles
    Premium dark theme with glassmorphism
    ══════════════════════════════════════════════════════════ */
@@ -418,6 +425,8 @@ tbody tr:hover { background: var(--bg-glass-hover); }
   font-size: var(--font-sm);
   transition: all var(--transition-fast);
   outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-input:focus, .form-select:focus {

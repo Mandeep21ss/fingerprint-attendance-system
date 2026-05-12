@@ -227,26 +227,10 @@ export default function Students() {
                   type="number" 
                   min="1" 
                   max="127"
-                  placeholder={`Auto-assigned: ${getNextFingerprintId()}`}
+                  placeholder="1"
                   value={form.fingerprintId}
                   onChange={(e) => setForm({ ...form, fingerprintId: e.target.value })}
-                  style={{
-                    backgroundColor: '#ffffff',
-                    color: '#1a1a1a',
-                    fontWeight: 500,
-                    width: '100%',
-                  }}
                 />
-                <small style={{ 
-                  display: 'block', 
-                  marginTop: 6, 
-                  color: 'var(--text-muted)', 
-                  fontSize: '0.75rem',
-                  wordBreak: 'break-word',
-                  overflow: 'hidden',
-                }}>
-                  💡 Auto-assigned to: <strong>{form.fingerprintId || getNextFingerprintId()}</strong>
-                </small>
               </div>
               <div className="grid-2">
                 <div className="form-group">
