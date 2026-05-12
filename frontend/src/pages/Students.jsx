@@ -21,6 +21,13 @@ export default function Students() {
 
   useEffect(() => { fetchStudents(); }, []);
 
+  // Calculate next available fingerprint ID
+  const getNextFingerprintId = () => {
+    if (students.length === 0) return 1;
+    const maxId = Math.max(...students.map(s => s.fingerprintId || 0));
+    return Math.min(maxId + 1, 127); // Cap at 127 (sensor limit)
+  };
+
   const fetchStudents = async () => {
     try {
       const { data } = await api.get('/students');
@@ -34,7 +41,13 @@ export default function Students() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: '', fingerprintId: '', class: '', roll: '', email: '' });
+    setForm({ 
+      name: '', 
+      fingerprintId: String(getNextFingerprintId()), 
+      class: '', 
+      roll: '', 
+      email: '' 
+    });
     setShowModal(true);
   };
 
@@ -209,9 +222,31 @@ export default function Students() {
               </div>
               <div className="form-group">
                 <label className="form-label">Fingerprint ID * (1-127)</label>
-                <input className="form-input" type="number" min="1" max="127"
-                  placeholder="1" value={form.fingerprintId}
-                  onChange={(e) => setForm({ ...form, fingerprintId: e.target.value })} />
+                <input 
+                  className="form-input" 
+                  type="number" 
+                  min="1" 
+                  max="127"
+                  placeholder={`Auto-assigned: ${getNextFingerprintId()}`}
+                  value={form.fingerprintId}
+                  onChange={(e) => setForm({ ...form, fingerprintId: e.target.value })}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#1a1a1a',
+                    fontWeight: 500,
+                    width: '100%',
+                  }}
+                />
+                <small style={{ 
+                  display: 'block', 
+                  marginTop: 6, 
+                  color: 'var(--text-muted)', 
+                  fontSize: '0.75rem',
+                  wordBreak: 'break-word',
+                  overflow: 'hidden',
+                }}>
+                  💡 Auto-assigned to: <strong>{form.fingerprintId || getNextFingerprintId()}</strong>
+                </small>
               </div>
               <div className="grid-2">
                 <div className="form-group">

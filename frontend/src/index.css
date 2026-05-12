@@ -469,6 +469,8 @@ tbody tr:hover { background: var(--bg-glass-hover); }
   padding: 32px;
   width: 90%;
   max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
   animation: slideUp var(--transition-base);
 }
 
