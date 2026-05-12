@@ -427,6 +427,28 @@ tbody tr:hover { background: var(--bg-glass-hover); }
 
 .form-input::placeholder { color: var(--text-muted); }
 
+/* ── Form inputs with white background (high contrast mode) ── */
+.form-input[style*="background: #ffffff"],
+.form-select[style*="background: #ffffff"] {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.form-input[style*="background: #ffffff"]::placeholder {
+  color: #666666;
+}
+
+.form-select[style*="background: #ffffff"] option {
+  color: #1a1a1a;
+  background-color: #ffffff;
+}
+
+.form-select[style*="background: #ffffff"] option:hover,
+.form-select[style*="background: #ffffff"] option:checked {
+  background-color: var(--accent-indigo);
+  color: #ffffff;
+}
+
 /* ══════ MODAL ══════ */
 .modal-overlay {
   position: fixed;

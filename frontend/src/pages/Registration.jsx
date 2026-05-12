@@ -49,12 +49,26 @@ export default function Registration() {
     setCommandLog((prev) => [{ ...entry, timestamp: new Date().toLocaleTimeString() }, ...prev].slice(0, 30));
   };
 
+  // Calculate next available fingerprint ID
+  const getNextFingerprintId = () => {
+    if (students.length === 0) return 1;
+    const maxId = Math.max(...students.map(s => s.fingerprintId || 0));
+    return Math.min(maxId + 1, 127); // Cap at 127 (sensor limit)
+  };
+
   useEffect(() => {
     fetchStudents();
     fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-set custom ID to next available when students load
+  useEffect(() => {
+    if (students.length > 0 && !selectedStudent && !customId) {
+      setCustomId(String(getNextFingerprintId()));
+    }
+  }, [students]);
 
   // Socket.io — listen for enrollment progress + device events
   useEffect(() => {
@@ -269,10 +283,17 @@ export default function Registration() {
                 value={selectedStudent}
                 onChange={(e) => { setSelectedStudent(e.target.value); setCustomId(''); }}
                 disabled={!isOnline || isEnrolling}
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: '#1a1a1a',
+                  fontWeight: 500,
+                  border: selectedStudent ? '2px solid var(--accent-indigo)' : '1px solid var(--border-color)',
+                  padding: '10px 12px',
+                }}
               >
                 <option value="">— Select a student —</option>
                 {students.map((s) => (
-                  <option key={s._id} value={s._id}>
+                  <option key={s._id} value={s._id} style={{ color: '#1a1a1a', backgroundColor: '#ffffff' }}>
                     {s.name} (ID #{s.fingerprintId}) — {s.class}
                   </option>
                 ))}
@@ -280,24 +301,39 @@ export default function Registration() {
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Or enter fingerprint ID manually</label>
-              <div className="flex gap-2">
-                <input
-                  className="form-input"
-                  type="number" min="1" max="127" placeholder="1-127"
-                  value={customId}
-                  onChange={(e) => { setCustomId(e.target.value); setSelectedStudent(''); }}
-                  disabled={!isOnline || isEnrolling}
-                  style={{ width: 120 }}
-                />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="1"
+                    max="127"
+                    placeholder={`1-127 (Next: ${getNextFingerprintId()})`}
+                    value={customId}
+                    onChange={(e) => { setCustomId(e.target.value); setSelectedStudent(''); }}
+                    disabled={!isOnline || isEnrolling}
+                    style={{
+                      width: '100%',
+                      backgroundColor: '#ffffff',
+                      color: '#1a1a1a',
+                      fontWeight: 500,
+                    }}
+                  />
+                  <small style={{ display: 'block', marginTop: 6, color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                    💡 Suggested next ID: <strong>{getNextFingerprintId()}</strong>
+                  </small>
+                </div>
                 <button
                   className="btn btn-primary"
                   onClick={handleEnroll}
                   disabled={switching || (!selectedStudent && !customId) || !isOnline || isEnrolling}
+                  style={{ whiteSpace: 'nowrap' }}
                 >
                   {switching ? <Loader size={16} /> : <Fingerprint size={16} />}
                   Start Enrollment
                 </button>
               </div>
+            </div>
             </div>
           </div>
 
