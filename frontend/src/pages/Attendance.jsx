@@ -3,15 +3,17 @@
  */
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { getSocketUrl } from '../utils/apiBase';
 import {
   Search, Download, Calendar, Filter, ChevronLeft, ChevronRight,
-  ClipboardList, RefreshCw, Wifi, WifiOff, Fingerprint, Loader,
+  ClipboardList, RefreshCw, Wifi, WifiOff, Fingerprint, Loader, BookOpen, Trash2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Attendance() {
+  const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -23,6 +25,8 @@ export default function Attendance() {
   const [endDate, setEndDate] = useState('');
   const [deviceStatus, setDeviceStatus] = useState({ mode: 'attend', isOnline: false });
   const [switching, setSwitching] = useState(false);
+  const [clearingStudent, setClearingStudent] = useState(null);
+  const [showClearModal, setShowClearModal] = useState(false);
 
   useEffect(() => {
     fetchAttendance();
@@ -146,6 +150,29 @@ export default function Attendance() {
     setPage(1);
   };
 
+  const clearStudentAttendance = async () => {
+    if (!clearingStudent) return;
+
+    try {
+      const params = {};
+      if (dateFilter) params.date = dateFilter;
+      if (startDate && endDate) {
+        params.startDate = startDate;
+        params.endDate = endDate;
+      }
+
+      const { data } = await api.delete(`/attendance/clear/${clearingStudent._id}`, { params });
+      if (data.success) {
+        toast.success(`Cleared ${data.deletedCount} record(s) for ${clearingStudent.name}`);
+        setShowClearModal(false);
+        setClearingStudent(null);
+        fetchAttendance();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to clear attendance');
+    }
+  };
+
   const isAttendMode = deviceStatus.mode === 'attend';
   const isOnline = deviceStatus.isOnline;
 
@@ -157,6 +184,9 @@ export default function Attendance() {
           <p className="page-subtitle">{total} total records</p>
         </div>
         <div className="flex gap-2">
+          <button className="btn btn-ghost" onClick={() => navigate('/attendance-tutorial')}>
+            <BookOpen size={16} /> Tutorial
+          </button>
           <button className="btn btn-ghost" onClick={setToday}>
             <Calendar size={16} /> Today
           </button>
@@ -257,12 +287,13 @@ export default function Attendance() {
                   <th>Date</th>
                   <th>Time</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {records.length === 0 ? (
                   <tr>
-                    <td colSpan={8}>
+                    <td colSpan={9}>
                       <div className="empty-state">
                         <ClipboardList size={36} style={{ opacity: 0.3 }} />
                         <p style={{ marginTop: 8 }}>No attendance records found</p>
@@ -305,6 +336,19 @@ export default function Attendance() {
                           {record.status}
                         </span>
                       </td>
+                      <td>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => {
+                            setClearingStudent(record.studentId ? { _id: record.studentId, name: record.name } : null);
+                            setShowClearModal(true);
+                          }}
+                          title="Delete this record"
+                          style={{ padding: '4px 8px' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -346,6 +390,57 @@ export default function Attendance() {
           </div>
         )}
       </div>
+
+      {/* Clear Attendance Modal */}
+      {showClearModal && clearingStudent && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowClearModal(false)}
+        >
+          <div
+            className="card"
+            style={{ maxWidth: 400, padding: 24 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>
+              Clear Attendance Records?
+            </h3>
+            <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.5 }}>
+              Are you sure you want to delete attendance records for <strong>{clearingStudent.name}</strong>?
+              {dateFilter && ` for date ${dateFilter}`}
+              {startDate && endDate && ` between ${startDate} and ${endDate}`}
+            </p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--accent-rose)', marginBottom: 24 }}>
+              ⚠️ This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowClearModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={clearStudentAttendance}
+              >
+                <Trash2 size={16} /> Delete Records
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

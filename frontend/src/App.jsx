@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import Registration from './pages/Registration';
 import Students from './pages/Students';
 import Attendance from './pages/Attendance';
+import AttendanceTutorial from './pages/AttendanceTutorial';
 import Navbar from './components/Navbar';
 
 function PrivateRoute({ children }) {
@@ -28,6 +29,7 @@ function AppLayout() {
           <Route path="/registration" element={<Registration />} />
           <Route path="/students" element={<Students />} />
           <Route path="/attendance" element={<Attendance />} />
+          <Route path="/attendance-tutorial" element={<AttendanceTutorial />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

@@ -259,4 +259,59 @@ router.get('/stats', authMiddleware, async (req, res) => {
   }
 });
 
+// ─── DELETE /api/attendance/clear/:studentId ─── Clear Attendance History ───
+router.delete('/clear/:studentId', authMiddleware, async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { startDate, endDate, fingerprintId } = req.query;
+
+    // Validate student exists
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found.',
+      });
+    }
+
+    // Build query
+    let query = { studentId };
+
+    if (fingerprintId) {
+      query.fingerprintId = parseInt(fingerprintId);
+    }
+
+    // Filter by date range if provided
+    if (startDate && endDate) {
+      query.date = { $gte: startDate, $lte: endDate };
+    } else if (startDate) {
+      query.date = { $gte: startDate };
+    } else if (endDate) {
+      query.date = { $lte: endDate };
+    }
+
+    // Delete records
+    const result = await Attendance.deleteMany(query);
+
+    res.json({
+      success: true,
+      message: `Deleted ${result.deletedCount} attendance record(s) for ${student.name}.`,
+      deletedCount: result.deletedCount,
+      student: {
+        id: student._id,
+        name: student.name,
+        fingerprintId: student.fingerprintId,
+      },
+    });
+
+  } catch (error) {
+    console.error('Clear attendance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear attendance records.',
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;
