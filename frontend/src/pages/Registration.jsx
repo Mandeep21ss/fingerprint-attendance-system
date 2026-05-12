@@ -334,7 +334,6 @@ export default function Registration() {
                 </button>
               </div>
             </div>
-            </div>
           </div>
 
           {/* Sensor commands */}
