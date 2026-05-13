@@ -340,8 +340,13 @@ export default function Attendance() {
                         <button
                           className="btn btn-ghost btn-sm"
                           onClick={() => {
-                            setClearingStudent(record.studentId ? { _id: record.studentId, name: record.name } : null);
-                            setShowClearModal(true);
+                            const studentId = record.studentId?._id || record.studentId;
+                            if (studentId) {
+                              setClearingStudent({ _id: studentId, name: record.name });
+                              setShowClearModal(true);
+                            } else {
+                              toast.error('Cannot delete: Student data not found');
+                            }
                           }}
                           title="Delete this record"
                           style={{ padding: '4px 8px' }}
