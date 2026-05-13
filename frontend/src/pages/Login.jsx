@@ -92,10 +92,6 @@ export default function Login() {
             )}
           </button>
         </form>
-
-        <p style={{ textAlign: 'center', marginTop: 24, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          Default: admin@attendance.com / Admin@123
-        </p>
       </div>
     </div>
   );
