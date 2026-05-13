@@ -337,22 +337,33 @@ export default function Attendance() {
                         </span>
                       </td>
                       <td>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => {
-                            const studentId = record.studentId?._id || record.studentId;
-                            if (studentId) {
-                              setClearingStudent({ _id: studentId, name: record.name });
-                              setShowClearModal(true);
-                            } else {
-                              toast.error('Cannot delete: Student data not found');
-                            }
-                          }}
-                          title="Delete this record"
-                          style={{ padding: '4px 8px' }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        {record.studentId ? (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => {
+                              const studentId = record.studentId?._id || record.studentId;
+                              if (studentId) {
+                                setClearingStudent({ _id: studentId, name: record.name });
+                                setShowClearModal(true);
+                              } else {
+                                toast.error('Cannot delete: Student data not found');
+                              }
+                            }}
+                            title="Delete this record"
+                            style={{ padding: '4px 8px' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        ) : (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            disabled
+                            title="No student data associated with this record"
+                            style={{ padding: '4px 8px', opacity: 0.5 }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
