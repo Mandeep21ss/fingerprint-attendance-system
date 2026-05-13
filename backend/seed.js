@@ -23,8 +23,8 @@ const seed = async () => {
     }
 
     const admin = new Admin({
-      email: process.env.ADMIN_EMAIL || 'admin@attendance.com',
-      password: process.env.ADMIN_PASSWORD || 'Admin@123',
+      email: process.env.ADMIN_EMAIL,
+      password: process.env.ADMIN_PASSWORD ,
       name: 'System Administrator',
     });
 

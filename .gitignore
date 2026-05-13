@@ -149,3 +149,5 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 $null
+
+AICONTEXT.md
