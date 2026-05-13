@@ -13,10 +13,12 @@ const seed = async () => {
       console.error('MONGO_URI is required. Copy .env.example to .env and set MONGO_URI.');
       process.exit(1);
     }
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('Connected to MongoDB');
+    if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+      console.error('ADMIN_EMAIL and ADMIN_PASSWORD are required in .env');
+      process.exit(1);
+    }
 
-    const existing = await Admin.findOne({ email: process.env.ADMIN_EMAIL || 'admin@attendance.com' });
+    const existing = await Admin.findOne({ email: process.env.ADMIN_EMAIL });
     if (existing) {
       console.log('Admin already exists. Skipping seed.');
       process.exit(0);
@@ -24,14 +26,14 @@ const seed = async () => {
 
     const admin = new Admin({
       email: process.env.ADMIN_EMAIL,
-      password: process.env.ADMIN_PASSWORD ,
+      password: process.env.ADMIN_PASSWORD,
       name: 'System Administrator',
     });
 
     await admin.save();
-    console.log('Default admin created:');
+    console.log('✅ Default admin created successfully');
     console.log(`   Email: ${admin.email}`);
-    console.log(`   Password: (as set in .env or Admin@123)`);
+    console.log('   Password: (as configured in .env)');
 
     process.exit(0);
   } catch (error) {
