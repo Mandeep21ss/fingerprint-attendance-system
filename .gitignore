@@ -155,7 +155,8 @@ AICONTEXT.md
 seed.js
 
 
-reset-admin.js
+backend/reset-admin.js
 
-change-password.js
+backend/change-password.js
 
+backend/seed.js
